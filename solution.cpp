@@ -68,13 +68,15 @@ std::vector<int> compress_row(const std::vector<int>& row) {
 
 // TODO: Merge a row (assumes the row is already compressed)
 vector<int> merge_row(vector<int> row) {
-	for (int i = 0; i < 4; i++) {
-		if (row[i] == 0)
+	for (auto it = row.begin(); it != row.end() - 1; it++) {
+		if (*it == 0) {
 			break;
-		if (row[i] == row[i+1]) {
-			row[i] = row[i] * 2;
-			row[i+1] = 0;
-			compress_row(row);
+		}
+		auto next_it = it + 1;
+		if (*it == *next_it) {
+			*it = *it * 2;
+			*next_it = 0;
+			row = compress_row(row);
 		}
 	}
 	return row;
@@ -83,14 +85,16 @@ vector<int> merge_row(vector<int> row) {
 // TODO: Use copy_if and iterators to move tiles left
 bool move_left(vector<vector<int>>& board) {
 	bool change = false;
-	for (int i = 0; i < 4; i++) {
-		vector<int> original = compress_row(board[i]);
-		merge_row(board[i]);
-		if (board[i] != original) {
+	for (auto& row : board) {
+		vector<int> original = compress_row(row);
+		row = merge_row(row);
+
+		if (row != original) {
 			change = true;
 		}
-		else 
-			board[i] = original;
+		else {
+			copy_if(original.begin(), original.end(), row.begin(), [](int x){return true;});
+		}
 	}
     	return change;
 }
@@ -98,20 +102,23 @@ bool move_left(vector<vector<int>>& board) {
 // TODO: Use reverse iterators to move tiles right
 bool move_right(vector<vector<int>>& board) {
 	bool change = false;
-	for (int i = 0; i < 4; i++) {
-		vector<int> original = board[i];
-		reverse(board[i].begin(), board[i].end());
-		compress_row(board[i]);
-		merge_row(board[i]);
-		compress_row(board[i]);
-		reverse(board[i].begin(), board[i].end());
-		if (board[i] != original) {
-			change = true;
+	for (auto& row : board) {
+		vector<int> original(row);
+    		reverse(row.begin(), row.end());
+    		row = compress_row(row);
+    		row = merge_row(row);
+    		row = compress_row(row);
+
+    		if (row != original) {
+        		change = true;
+        		reverse(row.begin(), row.end());	
+    		} 
+		else {
+
+        		copy_if(original.rbegin(), original.rend(), row.begin(),[](int x) { return true; });
 		}
-		else
-			board[i] = original;
 	}
-    	return change;
+	return change;
 }
 
 // TODO: Use column traversal to move tiles up
@@ -125,7 +132,7 @@ bool move_up(vector<vector<int>>& board) {
 			column.push_back(board[j][i]);
 		}
 		vector<int> original = compress_row(column);
-                merge_row(column);
+                column = merge_row(column);
                 if (column != original) {
 			change = true;
                         for (int k : column)
@@ -147,8 +154,8 @@ bool move_down(vector<vector<int>>& board) {
                 }
 		reverse(column.begin(), column.end());
                 vector<int> original =	column;
-		compress_row(column);
-                merge_row(column);
+		column = compress_row(column);
+                column = merge_row(column);
                 if (column != original) {
                         change = true;
 			reverse(column.begin(), column.end());
